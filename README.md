@@ -286,7 +286,7 @@ DeviceProcessEvents
 
 🧠 **Thought process:** The query was made with the help of chat gpt, because I wasn't sure which processes create dumps, but after seeing the results, I could have just as well used the query from the first 5 flags, because the answer was also there.
 
-<img width="600" src="https://github.com/user-attachments/assets/e5dd2028-8251-4fac-ad9b-1b67e5052518"/>
+<img width="900" src="https://github.com/user-attachments/assets/e5dd2028-8251-4fac-ad9b-1b67e5052518"/>
 
 **Answer: HRConfig.json**
 
@@ -324,7 +324,7 @@ DeviceProcessEvents
 
 🧠 **Thought process:** I looked for the file that was dumped with the above query, but it could also have been seen with the same query as the first 5 flags, which is where I actually took the screenshot.
 
-<img width="400" src="https://github.com/user-attachments/assets/34d36a4a-ea80-4483-9c1e-159369581b29"/>
+<img width="900" src="https://github.com/user-attachments/assets/34d36a4a-ea80-4483-9c1e-159369581b29"/>
 
 **Answer: "notepad.exe" C:\HRTools\HRConfig.json**
 
@@ -360,7 +360,7 @@ DeviceNetworkEvents
 
 🧠 **Thought process:** I looked for unique remote URLs and found the pipedream.net, which is known for data exfil.
 
-<img width="1000" src="https://github.com/user-attachments/assets/5e96688d-33d4-456c-88e0-b79b938bd0c5"/>
+<img width="600" src="https://github.com/user-attachments/assets/5e96688d-33d4-456c-88e0-b79b938bd0c5"/>
 
 **Answer: .net**
 
