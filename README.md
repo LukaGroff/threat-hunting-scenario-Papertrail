@@ -428,7 +428,7 @@ DeviceRegistryEvents
 
 🧠 **Thought process:** I used the same query as for flag 6 and ordered the logs by registry value name again. That is where I saw the HRToolTracker and the registry value data which has the name of the file.
 
-<img width="800" src="https://github.com/user-attachments/assets/dceb3328-7555-435f-9528-c3b9a4876a2b"/>
+<img width="900" src="https://github.com/user-attachments/assets/dceb3328-7555-435f-9528-c3b9a4876a2b"/>
 
 **Answer: OnboardTracker.ps1**
 
@@ -464,7 +464,7 @@ DeviceEvents
 
 🧠 **Thought process:** The query doesn't seem like much but the empty fields in the FileName column helped a lot, so when I order by File name I could see that the file of Carlos Tanaka was accessed the most.
 
-<img width="250" src="https://github.com/user-attachments/assets/e1efafef-83ea-4315-a2f7-ca036d7b9bcc"/>
+<img width="800" src="https://github.com/user-attachments/assets/e1efafef-83ea-4315-a2f7-ca036d7b9bcc"/>
 
 **Answer: Carlos Tanaka**
 
