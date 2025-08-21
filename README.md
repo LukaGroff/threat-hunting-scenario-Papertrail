@@ -216,8 +216,6 @@ DeviceProcessEvents
 
 🧠 **Thought process:** Query will stay the same. I spotted this command upon reviewing the logs in flag 1 already.
 
-<img width="250" src="https://github.com/user-attachments/assets/fd161361-da91-49b7-b3b6-10a559c48896"/>
-
 **Answer: ""powershell.exe" -Command "Set-MpPreference -DisableRealtimeMonitoring $true"**
 
 ---
