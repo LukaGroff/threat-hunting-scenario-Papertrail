@@ -514,7 +514,7 @@ DeviceFileEvents
 
 ---
 
-## 🟩 Flag 14 – D Audit Trail Disruption
+## 🟩 Flag 14 – Audit Trail Disruption
 
 **Objective:**
 
