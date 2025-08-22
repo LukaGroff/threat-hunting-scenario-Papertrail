@@ -49,7 +49,7 @@ DeviceEvents
 | where ActionType == "SensitiveFileRead"
 ```
 
-🧠 **Thought process:** I immediately went searching for sensitive files read on the weekend mentioned in the scenario, around the 20th of July. I found some HR related files that were accessed by nathan-iel-vm. Later on the logs disappeared, so I could not take a screenshot then, but I found the newly created logs for the new vm n4thani3l-vm and took the screenshot of those.
+🧠 **Thought process:** I immediately went searching for sensitive files read on the weekend mentioned in the scenario, around the 20th of July. I found some HR related files that were accessed by nathan-iel-vm.
 
 <img width="600" src="https://github.com/user-attachments/assets/9dce0e98-f4d6-4a3c-9457-73bab7048c4f"/>
 
@@ -86,7 +86,7 @@ DeviceProcessEvents
 | project Timestamp, ProcessCommandLine, FileName, SHA256,InitiatingProcessFileName, AccountName, ProcessCreationTime
 ```
 
-🧠 **Thought process:** The assignment specifically asks for Powershell execution and for the Process Creation Time, so I made sure to look into all the Powershell executions of nathaniel vm and their process creation times. The answer provided is based on the original logs, but the screenshot is of the new logs. But we can clearly see from the logs that someone got into the system, got remote access and the first thing he wanted to check was "who he is" with the command "whoami".
+🧠 **Thought process:** The assignment specifically asks for PowerShell execution and for the Process Creation Time, so I made sure to look into all the PowerShell executions of nathaniel vm and their process creation times. But we can clearly see from the logs that someone got into the system, got remote access, and the first thing they wanted to check was "who they are" with the command "whoami".
 
 <img width="600" src="https://github.com/user-attachments/assets/1f4ac41e-7127-4701-8d41-83fb0f5254e3"/>
 
