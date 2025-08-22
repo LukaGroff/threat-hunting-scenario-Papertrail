@@ -19,6 +19,10 @@
 
 ---
 
+## NOTE
+
+Before I begin, the queries used and the answers are for the original logs, so there might be some differences in answers, especially when it comes to time. I had to find the new logs as well to create screenshots, because I only focused on completing the hunt when it came out that first day. At the time of creating the report, I had to find the results all over again with the newly created VM to provide these screenshots.
+
 
  # 📖 **Scenario**
 
