@@ -615,7 +615,7 @@ DeviceRegistryEvents
 union ProcAF, FileAF, RegAF
 ```
 
-🧠 **Thought process:** ChatGPT wrote the query as I wasn't sure what I was looking for, BUT it gave me the correct answer immediately. According to the new logs the answer is different, the time obviouslly, but the file as well. In previous logs it was EmptySysmonConfig.xml but in the new logs i'm seeing ConsoleHost_history.txt.
+🧠 **Thought process:** ChatGPT wrote the query as I wasn't sure what I was looking for, BUT it gave me the correct answer immediately. According to the new logs, the answer is different, the time obviously, but the file as well. In previous logs, it was EmptySysmonConfig.xml, but in the new logs, I'm seeing ConsoleHost_history.txt.
 
 **Answer: 2025-07-19T06:18:38.6841044Z**
 
